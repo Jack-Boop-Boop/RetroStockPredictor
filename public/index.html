@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Predictor - Macintosh</title>
+    <link rel="stylesheet" href="/static/css/retro-mac.css">
+</head>
+<body>
+    <!-- Menu Bar -->
+    <div class="menu-bar">
+        <span class="apple-logo"></span>
+        <span class="menu-item">File</span>
+        <span class="menu-item">Edit</span>
+        <span class="menu-item">View</span>
+        <span class="menu-item">Analyze</span>
+        <span class="menu-item">Trade</span>
+        <span class="menu-item">Help</span>
+        <span class="clock" id="clock">00:00</span>
+    </div>
+
+    <div class="desktop">
+        <!-- Portfolio Window -->
+        <div class="window" id="portfolio-window" style="width: 320px;">
+            <div class="window-title-bar">
+                <div class="close-box"></div>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="title">Portfolio</span>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+            <div class="window-content">
+                <table class="mac-table">
+                    <tr>
+                        <th colspan="2">Paper Trading Account</th>
+                    </tr>
+                    <tr>
+                        <td>Cash</td>
+                        <td id="portfolio-cash">$100,000.00</td>
+                    </tr>
+                    <tr>
+                        <td>Positions</td>
+                        <td id="portfolio-positions">$0.00</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td><strong id="portfolio-total">$100,000.00</strong></td>
+                    </tr>
+                    <tr>
+                        <td>P&L</td>
+                        <td id="portfolio-pnl">$0.00 (0.00%)</td>
+                    </tr>
+                </table>
+                <div style="margin-top: 12px;">
+                    <button class="mac-button" onclick="refreshPortfolio()">Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Analysis Window -->
+        <div class="window" style="width: 400px;">
+            <div class="window-title-bar">
+                <div class="close-box"></div>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="title">Stock Analysis</span>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+            <div class="window-content">
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <input type="text" class="mac-input" id="symbol-input" placeholder="AAPL" style="width: 100px;">
+                    <button class="mac-button primary" onclick="analyzeStock()">Analyze</button>
+                </div>
+
+                <div id="analysis-result">
+                    <p style="color: var(--mac-dark-gray);">Enter a symbol and click Analyze</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agent Hierarchy Window -->
+        <div class="window" style="width: 350px;">
+            <div class="window-title-bar">
+                <div class="close-box"></div>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="title">Agent Hierarchy</span>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+            <div class="window-content">
+                <div class="agent-tree" id="agent-tree">
+                    <div><strong>Portfolio CEO</strong> <span id="ceo-status">●</span></div>
+                    <div class="agent">Risk Manager <span id="risk-status">●</span></div>
+                    <div class="agent">Quant Strategist <span id="quant-status">●</span></div>
+                    <div class="agent" style="margin-left: 32px;">Technical Analyst <span id="tech-status">●</span></div>
+                    <div class="agent" style="margin-left: 32px;">Fundamental Analyst <span id="fund-status">●</span></div>
+                    <div class="agent" style="margin-left: 32px;">Sentiment Analyst <span id="sent-status">●</span></div>
+                    <div class="agent" style="margin-left: 32px;">ML Predictor <span id="ml-status">●</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Watchlist Window -->
+        <div class="window" style="width: 340px;">
+            <div class="window-title-bar">
+                <div class="close-box"></div>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="title">Watchlist</span>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+            <div class="window-content">
+                <table class="mac-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Price</th>
+                            <th>Signal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="watchlist-body">
+                        <tr>
+                            <td>AAPL</td>
+                            <td>--</td>
+                            <td><span class="signal-hold">HOLD</span></td>
+                        </tr>
+                        <tr>
+                            <td>MSFT</td>
+                            <td>--</td>
+                            <td><span class="signal-hold">HOLD</span></td>
+                        </tr>
+                        <tr>
+                            <td>GOOGL</td>
+                            <td>--</td>
+                            <td><span class="signal-hold">HOLD</span></td>
+                        </tr>
+                        <tr>
+                            <td>NVDA</td>
+                            <td>--</td>
+                            <td><span class="signal-hold">HOLD</span></td>
+                        </tr>
+                        <tr>
+                            <td>TSLA</td>
+                            <td>--</td>
+                            <td><span class="signal-hold">HOLD</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="margin-top: 12px;">
+                    <button class="mac-button" onclick="refreshWatchlist()">Refresh All</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console Window -->
+        <div class="window" style="width: 500px;">
+            <div class="window-title-bar">
+                <div class="close-box"></div>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="title">Console</span>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+            <div class="window-content" style="background: #000; color: #0f0; font-family: monospace; height: 200px;" id="console">
+                <div>> Stock Predictor v0.1.0</div>
+                <div>> System ready</div>
+                <div>> Mode: PAPER TRADING</div>
+                <div>> <span class="cursor"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# Core
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# Data fetching
+yfinance>=0.2.40
+robin_stocks>=3.0.0
+requests>=2.31.0
+
+# Data processing
+pandas>=2.2.0
+numpy>=2.0.0
+
+# Technical analysis
+pandas-ta>=0.3.14b
+
+# Machine Learning
+torch>=2.2.0
+scikit-learn>=1.4.0
+transformers>=4.37.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# Utilities
+loguru>=0.7.0
+tqdm>=4.66.0

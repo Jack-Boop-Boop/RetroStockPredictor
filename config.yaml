@@ -1,0 +1,52 @@
+# Stock Predictor Configuration
+
+trading:
+  mode: paper  # paper or live
+  max_position_pct: 0.1  # Max 10% of portfolio per position
+  max_daily_trades: 10
+  stop_loss_pct: 0.05  # 5% stop loss
+  take_profit_pct: 0.15  # 15% take profit
+
+data:
+  yahoo:
+    default_period: "1y"
+    default_interval: "1d"
+  database:
+    path: "data/stocks.db"
+
+agents:
+  technical:
+    weight: 0.25
+    indicators:
+      - rsi
+      - macd
+      - bollinger
+      - sma_crossover
+  fundamental:
+    weight: 0.25
+    metrics:
+      - pe_ratio
+      - debt_to_equity
+      - revenue_growth
+  sentiment:
+    weight: 0.25
+    sources:
+      - news
+  ml:
+    weight: 0.25
+    model: lstm
+    lookback_days: 60
+
+risk:
+  max_portfolio_risk: 0.02  # 2% max portfolio risk per trade
+  max_correlation: 0.7  # Avoid highly correlated positions
+  min_signal_strength: 0.3  # Minimum signal to consider
+
+watchlist:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - NVDA
+  - META
+  - TSLA
