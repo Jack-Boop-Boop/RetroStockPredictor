@@ -185,16 +185,6 @@ RetroStockPredictor/
 
 ---
 
-## 🏆 HIGH SCORES
-
-| Rank | Strategy | Returns | Status |
-|------|----------|---------|--------|
-| 1 | HODL Bitcoin since 2010 | ∞% | 🏆 Legend |
-| 2 | This AI (backtested) | TBD | 🤖 Loading... |
-| 3 | Blindfolded dart throw | -15% | 🎯 Classic |
-| 4 | Inverse Cramer | +47% | 📺 Reliable |
-
----
 
 ## 🤝 CONTRIBUTING
 
