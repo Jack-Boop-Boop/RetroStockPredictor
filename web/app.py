@@ -8,13 +8,13 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO
 
 from src.utils import config, get_logger
 from src.data import Database, YahooFetcher
 from src.agents import (
-    TechnicalAnalyst, SentimentAnalyst, MLPredictor,
+    TechnicalAnalyst, FundamentalAnalyst, SentimentAnalyst, MLPredictor,
     QuantStrategist, RiskManager, PortfolioCEO
 )
 from src.execution import PaperTrader
@@ -32,9 +32,10 @@ paper_trader = PaperTrader()
 
 # Initialize agent hierarchy
 technical = TechnicalAnalyst()
+fundamental = FundamentalAnalyst()
 sentiment = SentimentAnalyst()
 ml = MLPredictor()
-quant = QuantStrategist([technical, sentiment, ml])
+quant = QuantStrategist([technical, fundamental, sentiment, ml])
 risk = RiskManager()
 ceo = PortfolioCEO(quant, risk)
 
@@ -52,20 +53,25 @@ def get_portfolio():
     return jsonify(summary)
 
 
-@app.route('/api/quote/<symbol>')
-def get_quote(symbol):
+@app.route('/api/quote')
+def get_quote():
     """Get current quote for a symbol."""
+    symbol = request.args.get('symbol', '').upper()
+    if not symbol:
+        return jsonify({'error': 'Missing symbol parameter'}), 400
     try:
-        data = fetcher.get_realtime_price(symbol.upper())
+        data = fetcher.get_realtime_price(symbol)
         return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
 
-@app.route('/api/analyze/<symbol>')
-def analyze_symbol(symbol):
+@app.route('/api/analyze')
+def analyze_symbol():
     """Run full agent analysis on a symbol."""
-    symbol = symbol.upper()
+    symbol = request.args.get('symbol', '').upper()
+    if not symbol:
+        return jsonify({'error': 'Missing symbol parameter'}), 400
     logger.info(f"Web: Analyzing {symbol}")
 
     try:
@@ -81,6 +87,9 @@ def analyze_symbol(symbol):
 
         tech_signal = technical.analyze(symbol, data)
         signals.append(tech_signal)
+
+        fund_signal = fundamental.analyze(symbol, data)
+        signals.append(fund_signal)
 
         sent_signal = sentiment.analyze(symbol, data)
         signals.append(sent_signal)
@@ -100,6 +109,7 @@ def analyze_symbol(symbol):
             'approved': decision.approved,
             'signals': {
                 'technical_analyst': float(tech_signal.value),
+                'fundamental_analyst': float(fund_signal.value),
                 'sentiment_analyst': float(sent_signal.value),
                 'ml_predictor': float(ml_signal.value),
             },

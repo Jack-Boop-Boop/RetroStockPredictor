@@ -33,6 +33,10 @@ async function analyzeStock() {
 
     try {
         const response = await fetch(`/api/analyze?symbol=${symbol}`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server error (${response.status})`);
+        }
         const data = await response.json();
 
         if (data.error) {
@@ -59,6 +63,10 @@ async function analyzeStock() {
                     <tr>
                         <td>Technical</td>
                         <td>${formatSignal(data.signals.technical_analyst)}</td>
+                    </tr>
+                    <tr>
+                        <td>Fundamental</td>
+                        <td>${formatSignal(data.signals.fundamental_analyst)}</td>
                     </tr>
                     <tr>
                         <td>Sentiment</td>
@@ -122,6 +130,9 @@ async function refreshPortfolio() {
 
     try {
         const response = await fetch('/api/portfolio');
+        if (!response.ok) {
+            throw new Error(`Server error (${response.status})`);
+        }
         const data = await response.json();
 
         document.getElementById('portfolio-cash').textContent = `$${data.cash.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
@@ -146,6 +157,9 @@ async function refreshWatchlist() {
     for (const symbol of symbols) {
         try {
             const response = await fetch(`/api/quote?symbol=${symbol}`);
+            if (!response.ok) {
+                throw new Error(`Server error (${response.status})`);
+            }
             const data = await response.json();
 
             // Find and update the row
