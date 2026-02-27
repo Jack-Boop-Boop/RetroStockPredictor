@@ -62,11 +62,24 @@ def analyze_stock(symbol):
 
     # Aggregate
     tech_signal = (rsi_signal * 0.4 + macd_signal * 0.4 + momentum_signal * 0.2)
+
+    # Fundamental signal (simplified: based on P/E and price vs 200-day MA)
+    try:
+        info = ticker.info
+        pe_ratio = info.get("trailingPE")
+        if pe_ratio and pe_ratio > 0:
+            # Lower P/E = more bullish, normalize around 20
+            fund_signal = float(min(0.6, max(-0.6, (20 - pe_ratio) / 40)))
+        else:
+            fund_signal = 0.0
+    except Exception:
+        fund_signal = 0.0
+
     sentiment_signal = momentum_signal * 0.8
     ml_signal = (short_momentum + (close.iloc[-1] - close.iloc[-20]) / close.iloc[-20]) / 2
 
     # Final decision
-    final_signal = (tech_signal + sentiment_signal + ml_signal) / 3
+    final_signal = (tech_signal + fund_signal + sentiment_signal + ml_signal) / 4
     confidence = min(0.8, abs(final_signal) + 0.3)
 
     if final_signal > 0.3:
@@ -85,6 +98,7 @@ def analyze_stock(symbol):
         "approved": abs(final_signal) > 0.2,
         "signals": {
             "technical_analyst": float(tech_signal),
+            "fundamental_analyst": float(fund_signal),
             "sentiment_analyst": float(sentiment_signal),
             "ml_predictor": float(ml_signal),
         },
@@ -108,6 +122,7 @@ class handler(BaseHTTPRequestHandler):
             if result is None:
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": f"No data for {symbol}"}).encode())
                 return
@@ -121,5 +136,6 @@ class handler(BaseHTTPRequestHandler):
         except Exception as e:
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
