@@ -38,6 +38,9 @@ def analyze_stock(symbol):
     if data.empty:
         return None
 
+    # Normalize column names to lowercase (yfinance versions vary)
+    data.columns = [c.lower() for c in data.columns]
+
     close = data["close"]
     current_price = close.iloc[-1]
 
