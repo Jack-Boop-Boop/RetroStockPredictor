@@ -9,7 +9,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from flask import Flask, render_template, jsonify, request
-from flask_socketio import SocketIO
 
 from src.utils import config, get_logger
 from src.data import Database, YahooFetcher
@@ -23,7 +22,6 @@ logger = get_logger("web")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'stock-predictor-secret'
-socketio = SocketIO(app)
 
 # Initialize components
 db = Database()
@@ -199,7 +197,7 @@ def main():
     print("  http://localhost:5000")
     print("=" * 50)
 
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 
 if __name__ == '__main__':
