@@ -16,6 +16,7 @@
         <span class="menu-item">Analyze</span>
         <span class="menu-item">Trade</span>
         <span class="menu-item">Help</span>
+        <span class="menu-item" onclick="doLogout()" style="cursor:pointer;">Logout</span>
         <span class="clock" id="clock">00:00</span>
     </div>
 
@@ -181,6 +182,33 @@
                 <div>> System ready</div>
                 <div>> Mode: PAPER TRADING</div>
                 <div>> <span class="cursor"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Dialog -->
+    <div class="dialog-overlay" id="login-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1000; align-items:center; justify-content:center;">
+        <div class="window" style="width:320px; margin:0;">
+            <div class="window-title-bar">
+                <div class="close-box"></div>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+                <span class="title">Login</span>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="window-content">
+                <div style="margin-bottom:8px;">
+                    <label>Email</label><br>
+                    <input type="email" class="mac-input" id="login-email" placeholder="you@example.com" style="width:100%;">
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label>Password</label><br>
+                    <input type="password" class="mac-input" id="login-password" placeholder="password" style="width:100%;">
+                </div>
+                <div id="login-error" style="color:red; margin-bottom:8px; font-size:12px;"></div>
+                <div style="display:flex; gap:8px;">
+                    <button class="mac-button primary" onclick="doLogin()">Login</button>
+                    <button class="mac-button" onclick="doRegister()">Register</button>
+                </div>
             </div>
         </div>
     </div>

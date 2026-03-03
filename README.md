@@ -186,7 +186,89 @@ RetroStockPredictor/
 ---
 
 
-## 🤝 CONTRIBUTING
+## Production Setup
+
+### Prerequisites
+- Python 3.11+
+- PostgreSQL (or [Neon](https://neon.tech) / [Supabase](https://supabase.com) for serverless Postgres)
+- Redis (optional, [Upstash](https://upstash.com) for caching + rate limiting)
+
+### Environment Variables
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | Secret for signing auth tokens (32+ chars) |
+| `REDIS_URL` | No | Redis URL for caching + rate limiting |
+| `REDIS_TOKEN` | No | Redis auth token (Upstash) |
+| `NEWS_API_KEY` | No | NewsAPI key for sentiment |
+| `ALPHA_VANTAGE_KEY` | No | Alpha Vantage API key |
+| `ENVIRONMENT` | No | `development` or `production` |
+| `CORS_ORIGINS` | No | Comma-separated allowed origins |
+
+Generate a JWT secret:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+### Install & Run
+
+```bash
+# Install dependencies
+pip install -r requirements-local.txt
+
+# Run database migrations
+alembic upgrade head
+
+# Seed demo user ($100k paper portfolio)
+python -m scripts.seed
+
+# Start the server
+uvicorn src.api.app:app --reload --port 5000
+```
+
+Then open http://localhost:5000. Login with `demo@stockpredictor.local` / `changeme123`.
+
+### API Documentation
+
+In development mode, Swagger docs are available at http://localhost:5000/docs.
+
+### Key API Endpoints
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/auth/register` | POST | No | Create account |
+| `/api/auth/login` | POST | No | Get JWT token |
+| `/api/auth/me` | GET | Yes | Current user |
+| `/api/portfolio` | GET | Yes | Portfolio summary with live P&L |
+| `/api/portfolio/orders` | POST | Yes | Place a paper trade |
+| `/api/portfolio/orders` | GET | Yes | Order history |
+| `/api/analysis/run` | POST | Yes | Start analysis (background) |
+| `/api/analysis/run/{id}` | GET | Yes | Poll analysis results |
+| `/api/quote?symbol=AAPL` | GET | No | Real-time quote |
+| `/api/watchlist` | GET | Yes | User's watchlist |
+| `/api/health` | GET | No | Health check |
+
+### Running Tests
+
+```bash
+python -m pytest tests/ -v
+```
+
+### Deploy Notes
+
+- **Vercel**: The legacy `api/*.py` serverless endpoints still work for read-only quote/analyze. For full functionality (auth, trading, persistent state), deploy as a long-running process on Railway, Render, or Fly.io.
+- **Database**: Use Neon or Supabase for serverless-friendly Postgres.
+- **Redis**: Upstash provides a serverless Redis with a generous free tier.
+- Set `ENVIRONMENT=production` to disable Swagger docs and enable generic error messages.
+
+---
+
+## CONTRIBUTING
 
 Found a bug? Want to add a feature? Think you can beat the market?
 
