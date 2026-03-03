@@ -98,7 +98,7 @@ def analyze_stock(symbol):
         "signal": float(final_signal),
         "confidence": float(confidence),
         "action": action,
-        "approved": abs(final_signal) > 0.2,
+        "approved": bool(abs(final_signal) > 0.2),
         "signals": {
             "technical_analyst": float(tech_signal),
             "fundamental_analyst": float(fund_signal),
