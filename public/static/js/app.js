@@ -1,188 +1,64 @@
 // Stock Predictor - Retro Mac UI JavaScript v0.3.0
 
 // ==================== State ====================
-let authToken = localStorage.getItem('sp_token');
-let isGuest = localStorage.getItem('sp_guest') === 'true';
+// Auth is disabled: everyone uses a shared public account.
+// We keep these variables for compatibility but they no longer gate features.
+let authToken = 'public';
+let isGuest = false;
 let cachedAgents = []; // cached agent tree from server
 
-// ==================== Auth ====================
+// ==================== Auth (disabled) ====================
 function authHeaders() {
-    if (!authToken) return {};
-    return { 'Authorization': `Bearer ${authToken}` };
+    // Backend no longer requires Authorization; keep for compatibility.
+    return {};
 }
 
 async function apiFetch(url, options = {}) {
     const headers = { ...authHeaders(), ...(options.headers || {}) };
     const resp = await fetch(url, { ...options, headers });
-    if (resp.status === 401) {
-        authToken = null;
-        isGuest = false;
-        localStorage.removeItem('sp_token');
-        localStorage.removeItem('sp_guest');
-        showLoginDialog();
-        throw new Error('Session expired. Please log in.');
-    }
     return resp;
 }
 
+// Login / registration / upgrade are no-ops in public mode.
 function showLoginDialog() {
-    document.getElementById('login-overlay').style.display = 'flex';
+    // Auth disabled: nothing to show.
 }
 
-function hideLoginDialog() {
-    document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('login-error').textContent = '';
-}
+function hideLoginDialog() {}
 
 function updateGuestBanner() {
     const banner = document.getElementById('guest-banner');
-    if (isGuest) {
-        banner.style.display = 'inline';
-    } else {
+    if (banner) {
         banner.style.display = 'none';
     }
 }
 
-async function doLogin() {
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-    const errorEl = document.getElementById('login-error');
-    errorEl.textContent = '';
-
-    try {
-        const resp = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
-        if (!resp.ok) {
-            const data = await resp.json().catch(() => ({}));
-            errorEl.textContent = data.detail || 'Login failed';
-            return;
-        }
-        const data = await resp.json();
-        authToken = data.access_token;
-        isGuest = data.is_guest || false;
-        localStorage.setItem('sp_token', authToken);
-        localStorage.setItem('sp_guest', isGuest);
-        hideLoginDialog();
-        updateGuestBanner();
-        logToConsole('Logged in successfully');
-        onAuthenticated();
-    } catch (e) {
-        errorEl.textContent = 'Connection error';
-    }
+function doLogin() {
+    logToConsole('Auth disabled: using public account');
 }
 
-async function doRegister() {
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-    const errorEl = document.getElementById('login-error');
-    errorEl.textContent = '';
-
-    try {
-        const resp = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
-        if (!resp.ok) {
-            const data = await resp.json().catch(() => ({}));
-            errorEl.textContent = data.detail || 'Registration failed';
-            return;
-        }
-        const data = await resp.json();
-        authToken = data.access_token;
-        isGuest = false;
-        localStorage.setItem('sp_token', authToken);
-        localStorage.setItem('sp_guest', 'false');
-        hideLoginDialog();
-        updateGuestBanner();
-        logToConsole('Account created successfully');
-        onAuthenticated();
-    } catch (e) {
-        errorEl.textContent = 'Connection error';
-    }
+function doRegister() {
+    logToConsole('Auth disabled: registrations are turned off');
 }
 
-async function doGuestLogin() {
-    const errorEl = document.getElementById('login-error');
-    errorEl.textContent = '';
-
-    try {
-        const resp = await fetch('/api/auth/guest', { method: 'POST' });
-        if (!resp.ok) {
-            const data = await resp.json().catch(() => ({}));
-            errorEl.textContent = data.detail || 'Guest login failed';
-            return;
-        }
-        const data = await resp.json();
-        authToken = data.access_token;
-        isGuest = true;
-        localStorage.setItem('sp_token', authToken);
-        localStorage.setItem('sp_guest', 'true');
-        hideLoginDialog();
-        updateGuestBanner();
-        logToConsole('Logged in as guest');
-        onAuthenticated();
-    } catch (e) {
-        errorEl.textContent = 'Connection error';
-    }
+function doGuestLogin() {
+    logToConsole('Auth disabled: using public account');
 }
 
 function doLogout() {
-    authToken = null;
-    isGuest = false;
-    localStorage.removeItem('sp_token');
-    localStorage.removeItem('sp_guest');
-    logToConsole('Logged out');
-    document.getElementById('portfolio-cash').textContent = '--';
-    document.getElementById('portfolio-positions').textContent = '--';
-    document.getElementById('portfolio-total').textContent = '--';
-    document.getElementById('portfolio-pnl').textContent = '--';
-    document.getElementById('watchlist-body').innerHTML = '';
-    updateGuestBanner();
-    showLoginDialog();
+    logToConsole('Auth disabled: staying in public mode');
+    onAuthenticated();
 }
 
-// ==================== Guest Upgrade ====================
+// ==================== Guest Upgrade (disabled) ====================
 function showUpgradeDialog() {
-    document.getElementById('upgrade-overlay').style.display = 'flex';
+    logToConsole('Upgrade disabled in public mode');
 }
 
-function hideUpgradeDialog() {
-    document.getElementById('upgrade-overlay').style.display = 'none';
-    document.getElementById('upgrade-error').textContent = '';
-}
+function hideUpgradeDialog() {}
 
-async function doUpgrade() {
-    const email = document.getElementById('upgrade-email').value;
-    const password = document.getElementById('upgrade-password').value;
-    const errorEl = document.getElementById('upgrade-error');
-    errorEl.textContent = '';
-
-    try {
-        const resp = await apiFetch('/api/auth/upgrade', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
-        if (!resp.ok) {
-            const data = await resp.json().catch(() => ({}));
-            errorEl.textContent = data.detail || 'Upgrade failed';
-            return;
-        }
-        const data = await resp.json();
-        authToken = data.access_token;
-        isGuest = false;
-        localStorage.setItem('sp_token', authToken);
-        localStorage.setItem('sp_guest', 'false');
-        hideUpgradeDialog();
-        updateGuestBanner();
-        logToConsole('Account upgraded successfully!');
-    } catch (e) {
-        errorEl.textContent = 'Connection error';
-    }
+function doUpgrade() {
+    logToConsole('Upgrade disabled in public mode');
 }
 
 // ==================== Clock ====================
@@ -211,8 +87,6 @@ function logToConsole(message) {
 async function analyzeStock(sym) {
     const symbol = sym || document.getElementById('symbol-input').value.toUpperCase() || 'AAPL';
     const resultDiv = document.getElementById('analysis-result');
-
-    if (!authToken) { showLoginDialog(); return; }
 
     resultDiv.innerHTML = '<p>Analyzing <span class="loading">&#9680;</span></p>';
     logToConsole(`Analyzing ${symbol}...`);
@@ -318,7 +192,6 @@ function formatSignal(value) {
 
 // ==================== Portfolio ====================
 async function refreshPortfolio() {
-    if (!authToken) return;
     logToConsole('Refreshing portfolio...');
 
     try {
@@ -340,7 +213,6 @@ async function refreshPortfolio() {
 
 // ==================== Watchlist ====================
 async function loadWatchlistFromServer() {
-    if (!authToken) return;
     try {
         const resp = await apiFetch('/api/watchlist');
         if (!resp.ok) return;
@@ -369,7 +241,6 @@ function renderWatchlist(symbols) {
 }
 
 async function refreshWatchlist() {
-    if (!authToken) return;
     logToConsole('Refreshing watchlist...');
 
     try {
@@ -395,7 +266,6 @@ async function refreshWatchlist() {
 }
 
 async function addToWatchlist(symbol) {
-    if (!authToken) { showLoginDialog(); return; }
     try {
         await apiFetch(`/api/watchlist/add?symbol=${symbol}`, { method: 'POST' });
         logToConsole(`Added ${symbol} to watchlist`);
@@ -406,7 +276,6 @@ async function addToWatchlist(symbol) {
 }
 
 async function removeFromWatchlist(symbol) {
-    if (!authToken) return;
     try {
         await apiFetch(`/api/watchlist/remove?symbol=${symbol}`, { method: 'POST' });
         logToConsole(`Removed ${symbol} from watchlist`);
@@ -471,7 +340,6 @@ function renderStockResults(results) {
 
 // ==================== Portfolio Import ====================
 function showImportDialog() {
-    if (!authToken) { showLoginDialog(); return; }
     document.getElementById('import-overlay').style.display = 'flex';
     document.getElementById('import-error').textContent = '';
     document.getElementById('import-success').textContent = '';
@@ -529,7 +397,6 @@ async function doImport() {
 
 // ==================== Agent Builder ====================
 async function loadAgents() {
-    if (!authToken) return;
     try {
         const resp = await apiFetch('/api/agents');
         if (!resp.ok) return;
@@ -661,7 +528,6 @@ async function deleteAgent() {
 }
 
 async function resetAgents() {
-    if (!authToken) return;
     try {
         const resp = await apiFetch('/api/agents/reset', { method: 'POST' });
         if (resp.ok) {
@@ -739,9 +605,13 @@ document.getElementById('symbol-input').addEventListener('keypress', function(e)
     if (e.key === 'Enter') analyzeStock();
 });
 
-document.getElementById('login-password').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') doLogin();
-});
+// Login dialog is disabled; guard in case elements are missing.
+const loginPasswordInput = document.getElementById('login-password');
+if (loginPasswordInput) {
+    loginPasswordInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') doLogin();
+    });
+}
 
 document.getElementById('stock-search').addEventListener('input', function(e) {
     clearTimeout(searchTimeout);
@@ -752,10 +622,6 @@ document.getElementById('stock-search').addEventListener('input', function(e) {
 // ==================== Init ====================
 document.addEventListener('DOMContentLoaded', function() {
     updateGuestBanner();
-    if (!authToken) {
-        showLoginDialog();
-    } else {
-        onAuthenticated();
-    }
+    onAuthenticated();
     logToConsole('Welcome to Stock Predictor');
 });
