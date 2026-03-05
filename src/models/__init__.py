@@ -9,6 +9,7 @@ from .portfolio import Portfolio, Position, Order, Fill
 from .watchlist import Watchlist
 from .market_data import Candle
 from .analysis import AnalysisRun, AnalysisAgentOutput
+from .custom_agent import CustomAgent
 
 __all__ = [
     "Base",
@@ -22,4 +23,5 @@ __all__ = [
     "Candle",
     "AnalysisRun",
     "AnalysisAgentOutput",
+    "CustomAgent",
 ]

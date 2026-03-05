@@ -1,6 +1,6 @@
 """Pydantic schemas for auth endpoints."""
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 
 class RegisterRequest(BaseModel):
@@ -17,6 +17,7 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    is_guest: bool = False
 
 
 class UserResponse(BaseModel):
@@ -24,5 +25,13 @@ class UserResponse(BaseModel):
     email: str
     display_name: str | None
     is_active: bool
+    is_guest: bool = False
 
     model_config = {"from_attributes": True}
+
+
+class UpgradeRequest(BaseModel):
+    """Upgrade a guest account to a full account."""
+    email: str = Field(..., min_length=5, max_length=255, pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    password: str = Field(..., min_length=8, max_length=128)
+    display_name: str | None = Field(None, max_length=100)

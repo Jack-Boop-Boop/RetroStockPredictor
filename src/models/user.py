@@ -13,9 +13,10 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str | None] = mapped_column(String(100))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_guest: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow, nullable=False)
 
@@ -23,6 +24,7 @@ class User(Base):
     portfolios = relationship("Portfolio", back_populates="user", lazy="selectin")
     watchlists = relationship("Watchlist", back_populates="user", lazy="selectin")
     analysis_runs = relationship("AnalysisRun", back_populates="user", lazy="select")
+    custom_agents = relationship("CustomAgent", back_populates="user", lazy="select")
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"

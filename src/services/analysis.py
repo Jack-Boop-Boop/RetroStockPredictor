@@ -5,14 +5,22 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from ..models import AnalysisRun, AnalysisAgentOutput, Portfolio
+from ..models import AnalysisRun, AnalysisAgentOutput, CustomAgent
 from ..models.base import new_uuid
 from ..utils import get_logger
 from . import market_data
 
 logger = get_logger(__name__)
 
-# Agent names in execution order
+# Map agent_type to runner function name
+AGENT_TYPE_TO_RUNNER = {
+    "technical": "technical_analyst",
+    "fundamental": "fundamental_analyst",
+    "sentiment": "sentiment_analyst",
+    "ml": "ml_predictor",
+}
+
+# Default agent order (fallback if no custom agents)
 AGENT_ORDER = [
     "technical_analyst",
     "fundamental_analyst",
@@ -113,10 +121,59 @@ def _run_ml(symbol: str, data) -> dict:
 
 AGENT_RUNNERS = {
     "technical_analyst": _run_technical,
+    "technical": _run_technical,
     "fundamental_analyst": _run_fundamental,
+    "fundamental": _run_fundamental,
     "sentiment_analyst": _run_sentiment,
+    "sentiment": _run_sentiment,
     "ml_predictor": _run_ml,
+    "ml": _run_ml,
 }
+
+
+def _get_leaf_agents(db: Session, user_id: str) -> list[dict]:
+    """Get the user's custom leaf agents (those that actually run analysis).
+
+    Returns a list of dicts with keys: agent_type, weight, name, prompt.
+    Falls back to default agents if no custom agents exist.
+    """
+    custom_agents = (
+        db.query(CustomAgent)
+        .filter_by(user_id=user_id, enabled=True)
+        .all()
+    )
+
+    if not custom_agents:
+        # Fallback: default 4 agents with equal weight
+        return [
+            {"agent_type": "technical_analyst", "weight": 1.0, "name": "Technical Analyst", "prompt": None},
+            {"agent_type": "fundamental_analyst", "weight": 1.0, "name": "Fundamental Analyst", "prompt": None},
+            {"agent_type": "sentiment_analyst", "weight": 1.0, "name": "Sentiment Analyst", "prompt": None},
+            {"agent_type": "ml_predictor", "weight": 1.0, "name": "ML Predictor", "prompt": None},
+        ]
+
+    # Find leaf agents (those with a runner function)
+    leaf_types = {"technical", "fundamental", "sentiment", "ml"}
+    leaves = []
+    for agent in custom_agents:
+        if agent.agent_type in leaf_types:
+            leaves.append({
+                "agent_type": agent.agent_type,
+                "weight": agent.weight,
+                "name": agent.name,
+                "prompt": agent.prompt,
+            })
+
+    # If no leaf agents found in custom hierarchy, fallback
+    if not leaves:
+        return [
+            {"agent_type": "technical_analyst", "weight": 1.0, "name": "Technical Analyst", "prompt": None},
+            {"agent_type": "fundamental_analyst", "weight": 1.0, "name": "Fundamental Analyst", "prompt": None},
+            {"agent_type": "sentiment_analyst", "weight": 1.0, "name": "Sentiment Analyst", "prompt": None},
+            {"agent_type": "ml_predictor", "weight": 1.0, "name": "ML Predictor", "prompt": None},
+        ]
+
+    return leaves
 
 
 def start_analysis(db: Session, user_id: str, symbol: str, portfolio_id: str | None = None) -> AnalysisRun:
@@ -136,6 +193,7 @@ def start_analysis(db: Session, user_id: str, symbol: str, portfolio_id: str | N
 def execute_analysis(db: Session, run: AnalysisRun) -> AnalysisRun:
     """Execute all agents for an analysis run (synchronous).
 
+    Uses the user's custom agent hierarchy with weights.
     In production, call this from a background task/worker.
     """
     run.status = "running"
@@ -150,10 +208,20 @@ def execute_analysis(db: Session, run: AnalysisRun) -> AnalysisRun:
             db.flush()
             return run
 
-        signal_values = []
+        # Get user's configured agents
+        agents = _get_leaf_agents(db, run.user_id)
 
-        for agent_type in AGENT_ORDER:
-            runner = AGENT_RUNNERS[agent_type]
+        signal_values = []
+        weight_total = 0
+
+        for agent_info in agents:
+            agent_type = agent_info["agent_type"]
+            weight = agent_info["weight"]
+
+            runner = AGENT_RUNNERS.get(agent_type)
+            if not runner:
+                continue
+
             t0 = time.time()
             try:
                 result = runner(run.symbol, data)
@@ -161,10 +229,13 @@ def execute_analysis(db: Session, run: AnalysisRun) -> AnalysisRun:
                 result = {"signal": "hold", "confidence": 0.0, "reasoning": {"error": str(e)}}
             elapsed_ms = int((time.time() - t0) * 1000)
 
+            # Store agent name for display (use custom name if available)
+            display_type = AGENT_TYPE_TO_RUNNER.get(agent_type, agent_type)
+
             output = AnalysisAgentOutput(
                 id=new_uuid(),
                 run_id=run.id,
-                agent_type=agent_type,
+                agent_type=display_type,
                 signal=result["signal"],
                 confidence=result["confidence"],
                 reasoning=result.get("reasoning", {}),
@@ -172,13 +243,14 @@ def execute_analysis(db: Session, run: AnalysisRun) -> AnalysisRun:
             )
             db.add(output)
 
-            # Map signal to numeric for aggregation
+            # Map signal to numeric for weighted aggregation
             sig_map = {"buy": 1, "hold": 0, "sell": -1}
-            signal_values.append(sig_map.get(result["signal"], 0) * result["confidence"])
+            signal_values.append(sig_map.get(result["signal"], 0) * result["confidence"] * weight)
+            weight_total += weight
 
         # Aggregate: weighted average of agent signals
-        if signal_values:
-            avg_signal = sum(signal_values) / len(signal_values)
+        if signal_values and weight_total > 0:
+            avg_signal = sum(signal_values) / weight_total
         else:
             avg_signal = 0
 
@@ -190,7 +262,7 @@ def execute_analysis(db: Session, run: AnalysisRun) -> AnalysisRun:
             run.final_signal = "hold"
 
         run.final_confidence = round(min(0.95, abs(avg_signal) + 0.3), 4)
-        run.final_reasoning = f"Aggregate signal: {avg_signal:.4f} from {len(AGENT_ORDER)} agents"
+        run.final_reasoning = f"Aggregate signal: {avg_signal:.4f} from {len(agents)} agents"
         run.status = "completed"
         run.completed_at = datetime.now(timezone.utc)
 

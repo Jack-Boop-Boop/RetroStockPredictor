@@ -52,3 +52,39 @@ def update_watchlist(
     wl.symbols = [s.upper() for s in body.symbols]
     db.flush()
     return wl
+
+
+@router.post("/watchlist/add", response_model=WatchlistResponse)
+def add_to_watchlist(
+    symbol: str = Query(..., min_length=1, max_length=10, pattern=r"^[A-Za-z.]{1,10}$"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Add a single symbol to the user's watchlist."""
+    wl = db.query(Watchlist).filter_by(user_id=user.id).first()
+    if not wl:
+        raise HTTPException(status_code=404, detail="No watchlist found")
+
+    sym = symbol.upper()
+    if sym not in wl.symbols:
+        wl.symbols = wl.symbols + [sym]
+        db.flush()
+    return wl
+
+
+@router.post("/watchlist/remove", response_model=WatchlistResponse)
+def remove_from_watchlist(
+    symbol: str = Query(..., min_length=1, max_length=10, pattern=r"^[A-Za-z.]{1,10}$"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Remove a single symbol from the user's watchlist."""
+    wl = db.query(Watchlist).filter_by(user_id=user.id).first()
+    if not wl:
+        raise HTTPException(status_code=404, detail="No watchlist found")
+
+    sym = symbol.upper()
+    if sym in wl.symbols:
+        wl.symbols = [s for s in wl.symbols if s != sym]
+        db.flush()
+    return wl

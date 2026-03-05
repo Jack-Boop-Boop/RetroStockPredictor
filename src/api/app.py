@@ -35,11 +35,15 @@ from .routes.auth import router as auth_router
 from .routes.portfolio import router as portfolio_router
 from .routes.market import router as market_router
 from .routes.analysis import router as analysis_router
+from .routes.stocks import router as stocks_router
+from .routes.agents import router as agents_router
 
 app.include_router(auth_router, prefix="/api")
 app.include_router(portfolio_router, prefix="/api")
 app.include_router(market_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api")
+app.include_router(stocks_router, prefix="/api")
+app.include_router(agents_router, prefix="/api")
 
 
 # --- Global error handler ---

@@ -15,8 +15,10 @@
         <span class="menu-item">View</span>
         <span class="menu-item">Analyze</span>
         <span class="menu-item">Trade</span>
+        <span class="menu-item" onclick="showImportDialog()" style="cursor:pointer;">Import</span>
         <span class="menu-item">Help</span>
-        <span class="menu-item" onclick="doLogout()" style="cursor:pointer;">Logout</span>
+        <span class="menu-item" id="menu-logout" onclick="doLogout()" style="cursor:pointer;">Logout</span>
+        <span id="guest-banner" style="display:none; font-size:12px; background:#000; color:#fff; padding:0 6px; cursor:pointer;" onclick="showUpgradeDialog()">GUEST - Click to upgrade</span>
         <span class="clock" id="clock">00:00</span>
     </div>
 
@@ -85,27 +87,50 @@
             </div>
         </div>
 
-        <!-- Agent Hierarchy Window -->
-        <div class="window" style="width: 350px;">
+        <!-- Agent Builder Window (replaces static hierarchy) -->
+        <div class="window" id="agent-builder-window" style="width: 400px;">
             <div class="window-title-bar">
                 <div class="close-box"></div>
                 <div class="lines">
                     <span></span><span></span><span></span><span></span><span></span>
                 </div>
-                <span class="title">Agent Hierarchy</span>
+                <span class="title">Agent Builder</span>
                 <div class="lines">
                     <span></span><span></span><span></span><span></span><span></span>
                 </div>
             </div>
             <div class="window-content">
                 <div class="agent-tree" id="agent-tree">
-                    <div><strong>Portfolio CEO</strong> <span id="ceo-status">●</span></div>
-                    <div class="agent">Risk Manager <span id="risk-status">●</span></div>
-                    <div class="agent">Quant Strategist <span id="quant-status">●</span></div>
-                    <div class="agent" style="margin-left: 32px;">Technical Analyst <span id="tech-status">●</span></div>
-                    <div class="agent" style="margin-left: 32px;">Fundamental Analyst <span id="fund-status">●</span></div>
-                    <div class="agent" style="margin-left: 32px;">Sentiment Analyst <span id="sent-status">●</span></div>
-                    <div class="agent" style="margin-left: 32px;">ML Predictor <span id="ml-status">●</span></div>
+                    <p style="color: var(--mac-dark-gray);">Loading agents...</p>
+                </div>
+                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                    <button class="mac-button" onclick="resetAgents()">Reset Default</button>
+                    <button class="mac-button" onclick="showAddAgentDialog()">Add Agent</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Browser Window -->
+        <div class="window" id="market-window" style="width: 380px;">
+            <div class="window-title-bar">
+                <div class="close-box"></div>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="title">Market Browser</span>
+                <div class="lines">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+            <div class="window-content">
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <input type="text" class="mac-input" id="stock-search" placeholder="Search stocks..." style="flex:1;">
+                </div>
+                <div id="stock-search-results" style="max-height: 250px; overflow-y: auto;">
+                    <p style="color: var(--mac-dark-gray); font-size:13px;">Type to search or browse popular stocks below</p>
+                </div>
+                <div style="margin-top: 8px;">
+                    <button class="mac-button" onclick="loadPopularStocks()">Popular Stocks</button>
                 </div>
             </div>
         </div>
@@ -128,35 +153,10 @@
                         <tr>
                             <th>Symbol</th>
                             <th>Price</th>
-                            <th>Signal</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="watchlist-body">
-                        <tr>
-                            <td>AAPL</td>
-                            <td>--</td>
-                            <td><span class="signal-hold">HOLD</span></td>
-                        </tr>
-                        <tr>
-                            <td>MSFT</td>
-                            <td>--</td>
-                            <td><span class="signal-hold">HOLD</span></td>
-                        </tr>
-                        <tr>
-                            <td>GOOGL</td>
-                            <td>--</td>
-                            <td><span class="signal-hold">HOLD</span></td>
-                        </tr>
-                        <tr>
-                            <td>NVDA</td>
-                            <td>--</td>
-                            <td><span class="signal-hold">HOLD</span></td>
-                        </tr>
-                        <tr>
-                            <td>TSLA</td>
-                            <td>--</td>
-                            <td><span class="signal-hold">HOLD</span></td>
-                        </tr>
                     </tbody>
                 </table>
                 <div style="margin-top: 12px;">
@@ -178,7 +178,7 @@
                 </div>
             </div>
             <div class="window-content" style="background: #000; color: #0f0; font-family: monospace; height: 200px;" id="console">
-                <div>> Stock Predictor v0.1.0</div>
+                <div>> Stock Predictor v0.3.0</div>
                 <div>> System ready</div>
                 <div>> Mode: PAPER TRADING</div>
                 <div>> <span class="cursor"></span></div>
@@ -205,9 +205,141 @@
                     <input type="password" class="mac-input" id="login-password" placeholder="password" style="width:100%;">
                 </div>
                 <div id="login-error" style="color:red; margin-bottom:8px; font-size:12px;"></div>
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button class="mac-button primary" onclick="doLogin()">Login</button>
                     <button class="mac-button" onclick="doRegister()">Register</button>
+                    <button class="mac-button" onclick="doGuestLogin()" style="border-style:dashed;">Continue as Guest</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent Edit Dialog -->
+    <div class="dialog-overlay" id="agent-edit-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1001; align-items:center; justify-content:center;">
+        <div class="window" style="width:360px; margin:0;">
+            <div class="window-title-bar">
+                <div class="close-box" onclick="hideAgentEditDialog()"></div>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+                <span class="title">Edit Agent</span>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="window-content">
+                <input type="hidden" id="agent-edit-id">
+                <div style="margin-bottom:8px;">
+                    <label>Name</label><br>
+                    <input type="text" class="mac-input" id="agent-edit-name" style="width:100%;">
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label>Strategy Prompt</label><br>
+                    <textarea class="mac-input" id="agent-edit-prompt" rows="4" style="width:100%; resize:vertical; font-family:inherit;"></textarea>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label>Weight: <span id="agent-edit-weight-label">1.0</span></label><br>
+                    <input type="range" id="agent-edit-weight" min="0" max="3" step="0.1" value="1.0" style="width:100%;" oninput="document.getElementById('agent-edit-weight-label').textContent=this.value">
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label><input type="checkbox" id="agent-edit-enabled" checked> Enabled</label>
+                </div>
+                <div id="agent-edit-error" style="color:red; margin-bottom:8px; font-size:12px;"></div>
+                <div style="display:flex; gap:8px;">
+                    <button class="mac-button primary" onclick="saveAgent()">Save</button>
+                    <button class="mac-button" onclick="hideAgentEditDialog()">Cancel</button>
+                    <button class="mac-button" onclick="deleteAgent()" style="margin-left:auto;">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Agent Dialog -->
+    <div class="dialog-overlay" id="agent-add-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1001; align-items:center; justify-content:center;">
+        <div class="window" style="width:340px; margin:0;">
+            <div class="window-title-bar">
+                <div class="close-box" onclick="hideAddAgentDialog()"></div>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+                <span class="title">Add Agent</span>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="window-content">
+                <div style="margin-bottom:8px;">
+                    <label>Name</label><br>
+                    <input type="text" class="mac-input" id="agent-add-name" placeholder="My Custom Agent" style="width:100%;">
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label>Type</label><br>
+                    <select class="mac-select" id="agent-add-type" style="width:100%;">
+                        <option value="technical">Technical Analyst</option>
+                        <option value="fundamental">Fundamental Analyst</option>
+                        <option value="sentiment">Sentiment Analyst</option>
+                        <option value="ml">ML Predictor</option>
+                        <option value="quant">Quant Strategist</option>
+                        <option value="risk">Risk Manager</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label>Parent Agent</label><br>
+                    <select class="mac-select" id="agent-add-parent" style="width:100%;">
+                        <option value="">(Top Level)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label>Prompt</label><br>
+                    <textarea class="mac-input" id="agent-add-prompt" rows="3" style="width:100%; resize:vertical; font-family:inherit;" placeholder="Describe this agent's strategy..."></textarea>
+                </div>
+                <div id="agent-add-error" style="color:red; margin-bottom:8px; font-size:12px;"></div>
+                <div style="display:flex; gap:8px;">
+                    <button class="mac-button primary" onclick="addAgent()">Create</button>
+                    <button class="mac-button" onclick="hideAddAgentDialog()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Portfolio Import Dialog -->
+    <div class="dialog-overlay" id="import-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1001; align-items:center; justify-content:center;">
+        <div class="window" style="width:420px; margin:0;">
+            <div class="window-title-bar">
+                <div class="close-box" onclick="hideImportDialog()"></div>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+                <span class="title">Import Portfolio</span>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="window-content">
+                <p style="font-size:13px; margin-bottom:8px;">Paste positions (one per line): SYMBOL,SHARES,AVG_COST</p>
+                <textarea class="mac-input" id="import-data" rows="6" style="width:100%; resize:vertical; font-family:monospace; font-size:13px;" placeholder="AAPL,10,150.00&#10;MSFT,5,380.00&#10;NVDA,3,800.00"></textarea>
+                <div id="import-error" style="color:red; margin-top:8px; font-size:12px;"></div>
+                <div id="import-success" style="margin-top:8px; font-size:12px;"></div>
+                <div style="margin-top:8px; display:flex; gap:8px;">
+                    <button class="mac-button primary" onclick="doImport()">Import</button>
+                    <button class="mac-button" onclick="hideImportDialog()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upgrade Account Dialog -->
+    <div class="dialog-overlay" id="upgrade-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1001; align-items:center; justify-content:center;">
+        <div class="window" style="width:320px; margin:0;">
+            <div class="window-title-bar">
+                <div class="close-box" onclick="hideUpgradeDialog()"></div>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+                <span class="title">Upgrade Account</span>
+                <div class="lines"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="window-content">
+                <p style="font-size:13px; margin-bottom:8px;">Save your data by creating a full account.</p>
+                <div style="margin-bottom:8px;">
+                    <label>Email</label><br>
+                    <input type="email" class="mac-input" id="upgrade-email" placeholder="you@example.com" style="width:100%;">
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label>Password</label><br>
+                    <input type="password" class="mac-input" id="upgrade-password" placeholder="min 8 characters" style="width:100%;">
+                </div>
+                <div id="upgrade-error" style="color:red; margin-bottom:8px; font-size:12px;"></div>
+                <div style="display:flex; gap:8px;">
+                    <button class="mac-button primary" onclick="doUpgrade()">Upgrade</button>
+                    <button class="mac-button" onclick="hideUpgradeDialog()">Cancel</button>
                 </div>
             </div>
         </div>

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fastapi",
+      "runtimeExecutable": "uvicorn",
+      "runtimeArgs": ["src.api.app:app", "--reload", "--port", "5000"],
+      "port": 5000
+    },
+    {
+      "name": "flask-legacy",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["web/app.py"],
+      "port": 5000
+    }
+  ]
+}
