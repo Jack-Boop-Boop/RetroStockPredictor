@@ -9,12 +9,32 @@ from ..schemas.stocks import StockSearchResult, StockSearchResponse
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
-# Load popular stocks from bundled JSON
-_POPULAR_STOCKS: list[dict] = []
+# Built-in fallback list of popular stocks for demo environments.
+_DEFAULT_POPULAR_STOCKS: list[dict] = [
+    {"symbol": "AAPL", "name": "Apple Inc.", "sector": "Technology"},
+    {"symbol": "MSFT", "name": "Microsoft Corporation", "sector": "Technology"},
+    {"symbol": "GOOGL", "name": "Alphabet Inc. Class A", "sector": "Technology"},
+    {"symbol": "AMZN", "name": "Amazon.com, Inc.", "sector": "Consumer Discretionary"},
+    {"symbol": "NVDA", "name": "NVIDIA Corporation", "sector": "Technology"},
+    {"symbol": "META", "name": "Meta Platforms, Inc.", "sector": "Technology"},
+    {"symbol": "TSLA", "name": "Tesla, Inc.", "sector": "Consumer Discretionary"},
+    {"symbol": "JNJ", "name": "Johnson & Johnson", "sector": "Healthcare"},
+    {"symbol": "UNH", "name": "UnitedHealth Group Incorporated", "sector": "Healthcare"},
+    {"symbol": "JPM", "name": "JPMorgan Chase & Co.", "sector": "Financials"},
+]
+
+# Load popular stocks from bundled JSON if available; otherwise fall back to defaults.
+_POPULAR_STOCKS: list[dict] = _DEFAULT_POPULAR_STOCKS
 _data_path = Path(__file__).parent.parent.parent.parent / "data" / "popular_stocks.json"
-if _data_path.exists():
-    with open(_data_path) as f:
-        _POPULAR_STOCKS = json.load(f)
+try:
+    if _data_path.exists():
+        with open(_data_path) as f:
+            loaded = json.load(f)
+        if isinstance(loaded, list) and loaded:
+            _POPULAR_STOCKS = loaded
+except Exception:
+    # On any error, keep using the in-code defaults.
+    _POPULAR_STOCKS = _DEFAULT_POPULAR_STOCKS
 
 
 @router.get("/search", response_model=StockSearchResponse)

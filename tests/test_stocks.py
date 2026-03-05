@@ -101,11 +101,14 @@ class TestPortfolioImport:
         }, headers=auth_headers)
         assert resp.status_code == 201
 
-    def test_import_requires_auth(self, client):
+    def test_import_works_without_auth_for_public_user(self, client):
+        """In public/demo mode, importing positions without auth should succeed."""
         resp = client.post("/api/portfolio/import", json={
             "positions": [{"symbol": "AAPL", "shares": 10, "avg_cost": 150.00}]
         })
-        assert resp.status_code == 401
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["imported"] == 1
 
     def test_import_empty_fails(self, client, auth_headers):
         resp = client.post("/api/portfolio/import", json={

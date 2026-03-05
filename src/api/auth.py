@@ -1,11 +1,16 @@
-"""JWT authentication: token creation, verification, and FastAPI dependency."""
+"""JWT authentication: token creation, verification, and FastAPI dependency.
+
+In this configuration:
+- Requests *with* a valid Bearer token get that specific user.
+- Requests *without* a token transparently use a shared public demo user.
+"""
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from ..models import User
@@ -51,15 +56,14 @@ def _get_or_create_public_user(db: Session) -> User:
     db.add(user)
     db.flush()
 
-    # Seed default portfolio, watchlist, and agent hierarchy
+    # Seed default portfolio, watchlist, and agent hierarchy.
+    # If this fails, keep the basic user so the demo still works.
     try:
         from .routes.auth import _create_user_defaults
 
         _create_user_defaults(db, user.id)
     except Exception:
-        # If seeding fails for any reason, still return the basic user
-        db.rollback()
-        db.refresh(user)
+        pass
 
     return user
 
@@ -69,11 +73,27 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     """
-    FastAPI dependency: in this configuration, authentication is disabled.
+    FastAPI dependency:
 
-    All callers receive the same shared public user; no token is required.
+    - If a valid Bearer token is provided, return that user (enforcing JWT auth).
+    - If no token is provided, return the shared public demo user.
     """
-    return _get_or_create_public_user(db)
+    if credentials is None:
+        return _get_or_create_public_user(db)
+
+    try:
+        payload = decode_token(credentials.credentials)
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    user = db.get(User, user_id)
+    if user is None or (hasattr(user, "is_active") and not user.is_active):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+    return user
 
 
 def get_optional_user(
@@ -83,6 +103,12 @@ def get_optional_user(
     """
     Optional user dependency for public endpoints.
 
-    With authentication disabled, this simply returns the shared public user.
+    - If a valid token is present, return that user.
+    - If no/invalid token, return None so callers can treat requests as anonymous.
     """
-    return _get_or_create_public_user(db)
+    if credentials is None:
+        return None
+    try:
+        return get_current_user(credentials, db)
+    except HTTPException:
+        return None

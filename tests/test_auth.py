@@ -70,8 +70,12 @@ class TestMe:
         assert data["display_name"] == "Test User"
 
     def test_me_no_token(self, client):
+        """In public/demo mode, /me returns the shared public user when no token is provided."""
         resp = client.get("/api/auth/me")
-        assert resp.status_code == 401
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["is_guest"] is True
+        assert "@local" in data["email"]
 
     def test_me_invalid_token(self, client):
         resp = client.get("/api/auth/me", headers={"Authorization": "Bearer garbage"})

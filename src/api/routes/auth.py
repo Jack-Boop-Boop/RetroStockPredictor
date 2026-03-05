@@ -222,5 +222,6 @@ def me(user: User = Depends(get_current_user)):
         id=user.id,
         email=user.email,
         display_name=getattr(user, "display_name", None),
+        is_active=bool(getattr(user, "is_active", True)),
         is_guest=bool(getattr(user, "is_guest", False)),
     )

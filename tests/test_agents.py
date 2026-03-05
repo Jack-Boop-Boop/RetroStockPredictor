@@ -27,9 +27,12 @@ class TestAgentList:
         assert "sentiment" in types
         assert "ml" in types
 
-    def test_list_agents_requires_auth(self, client):
+    def test_list_agents_public_access(self, client):
+        """In public/demo mode, listing agents should work without auth headers."""
         resp = client.get("/api/agents")
-        assert resp.status_code == 401
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["agents"]) == 7
 
 
 class TestAgentCreate:
