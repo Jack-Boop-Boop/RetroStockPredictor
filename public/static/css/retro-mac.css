@@ -432,6 +432,26 @@ textarea.mac-input {
     padding: 4px 8px;
 }
 
+/* Trade side toggle */
+.trade-side-btn {
+    min-width: 60px;
+    font-weight: bold;
+}
+
+.trade-side-btn.active {
+    background: var(--mac-black);
+    color: var(--mac-white);
+}
+
+/* Price change indicators */
+.change-up {
+    font-weight: bold;
+}
+
+.change-down {
+    font-weight: bold;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     .window {
